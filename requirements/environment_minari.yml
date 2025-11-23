@@ -1,0 +1,11 @@
+name: corl-minari
+dependencies:
+  - python==3.11
+  - numpy==1.26.4
+  - PyYAML==6.0.2
+  - pip
+  - pip:
+      - pydantic==2.5.3
+      - torch==2.2.0+cu121
+      - minari[hf,hdf5]
+      - pyrallis
