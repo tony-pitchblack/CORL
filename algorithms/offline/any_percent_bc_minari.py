@@ -21,7 +21,7 @@ TensorBatch = List[torch.Tensor]
 class TrainConfig:
     dataset_id: str = "D4RL/door/human-v2"
     download: bool = True
-    device: str = "cpu"
+    device: str = "cuda"
     seed: int = 0
     num_train_steps: int = int(1e6)
     batch_size: int = 256
@@ -82,7 +82,7 @@ class ReplayBuffer:
         state_dim: int,
         action_dim: int,
         buffer_size: int,
-        device: str = "cpu",
+        device: str = "cuda",
     ):
         self._buffer_size = buffer_size
         self._pointer = 0
@@ -153,7 +153,7 @@ class Actor(nn.Module):
         return self.max_action * self.net(state)
 
     @torch.no_grad()
-    def act(self, state: np.ndarray, device: str = "cpu") -> np.ndarray:
+    def act(self, state: np.ndarray, device: str = "cuda") -> np.ndarray:
         state_t = torch.tensor(state.reshape(1, -1), device=device, dtype=torch.float32)
         return self(state_t).cpu().data.numpy().flatten()
 
@@ -165,7 +165,7 @@ class BC:
         actor: nn.Module,
         actor_optimizer: torch.optim.Optimizer,
         discount: float = 0.99,
-        device: str = "cpu",
+        device: str = "cuda",
     ):
         self.actor = actor
         self.actor_optimizer = actor_optimizer
