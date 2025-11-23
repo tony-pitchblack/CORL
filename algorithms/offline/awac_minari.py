@@ -30,7 +30,7 @@ class TrainConfig:
     download: bool = True
     seed: int = 42
     deterministic_torch: bool = False
-    device: str = "cuda"
+    device: str = "cuda:2"
     num_train_steps: int = 1_000_000
     batch_size: int = 256
     hidden_dim: int = 256

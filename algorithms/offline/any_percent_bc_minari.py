@@ -48,7 +48,7 @@ class TrainConfig:
     # Experiment
     dataset_id: str = "D4RL/door/human-v2"
     download: bool = True
-    device: str = "cuda"
+    device: str = "cuda:1"
     seed: int = 0
     num_train_steps: int = int(1e6)
     batch_size: int = 256
