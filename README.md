@@ -28,12 +28,12 @@ Launch training scripts with tmux for persistent background execution (run from 
 
 **Behavioral Cloning (BC):**
 ```bash
-tmux kill-session -t bc 2>/dev/null || true; tmux new -s bc -d bash -c 'source .env && python algorithms/offline/any_percent_bc_minari.py; exec bash'
+tmux kill-session -t bc 2>/dev/null || true; tmux new -s bc bash -c 'source .env && python algorithms/offline/any_percent_bc_minari.py; exec bash'
 ```
 
 **Advantage-Weighted Actor-Critic (AWAC):**
 ```bash
-tmux kill-session -t awac 2>/dev/null || true; tmux new -s awac -d bash -c 'source .env && python algorithms/offline/awac_minari.py; exec bash'
+tmux kill-session -t awac 2>/dev/null || true; tmux new -s awac bash -c 'source .env && python algorithms/offline/awac_minari.py; exec bash'
 ```
 
 2. Create a `.env` file in the project root:
