@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # source: https://github.com/sfujim/TD3_BC
 # https://arxiv.org/pdf/2106.06860.pdf
 import copy

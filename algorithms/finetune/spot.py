@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # source: https://github.com/thuml/SPOT/tree/58c591dc48fbd9ff632b7494eab4caf778e86f4a
 # https://arxiv.org/pdf/2202.06239.pdf
 import copy

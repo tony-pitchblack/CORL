@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Inspired by:
 # 1. paper for LB-SAC: https://arxiv.org/abs/2211.11092
 # 2. implementation: https://github.com/tinkoff-ai/lb-sac

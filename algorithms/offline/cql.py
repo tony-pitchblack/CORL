@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # source: https://github.com/young-geng/CQL/tree/934b0e8354ca431d6c083c4e3a29df88d4b0a24d
 # https://arxiv.org/pdf/2006.04779.pdf
 import os

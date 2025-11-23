@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # source: https://github.com/tinkoff-ai/ReBRAC
 # https://arxiv.org/abs/2305.09836
 

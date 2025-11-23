@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Inspired by:
 # 1. paper for SAC-N: https://arxiv.org/abs/2110.01548
 # 2. implementation: https://github.com/snu-mllab/EDAC

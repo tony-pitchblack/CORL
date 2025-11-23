@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # inspiration:
 # 1. https://github.com/kzl/decision-transformer/blob/master/gym/decision_transformer/models/decision_transformer.py  # noqa
 # 2. https://github.com/karpathy/minGPT

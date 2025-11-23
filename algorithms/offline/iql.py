@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # source: https://github.com/gwthomas/IQL-PyTorch
 # https://arxiv.org/pdf/2110.06169.pdf
 import copy

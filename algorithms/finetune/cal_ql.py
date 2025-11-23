@@ -1,5 +1,9 @@
+#!/usr/bin/env python3
+
 # source: https://github.com/nakamotoo/Cal-QL/tree/main
 # https://arxiv.org/pdf/2303.05479.pdf
+#!/usr/bin/env python3
+
 import os
 import random
 import uuid
