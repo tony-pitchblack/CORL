@@ -1,0 +1,16 @@
+name: corl-minari
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+dependencies:
+  - python=3.9
+  - numpy
+  - pillow
+  - pytorch
+  - pytorch-cuda=12.4
+  - tqdm
+  - pip
+  - pip:
+      - minari[hf,hdf5]
+      - pyrallis
