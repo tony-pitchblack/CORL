@@ -19,7 +19,7 @@ source .env && mlflow server --host $MLFLOW_HOST --port $MLFLOW_PORT
 
    Or start in tmux for persistent background running:
 ```bash
-tmux new -s mlflow -d 'source .env && mlflow server --host $MLFLOW_HOST --port $MLFLOW_PORT'
+tmux new -s mlflow -d bash -c 'source .env && mlflow server --host $MLFLOW_HOST --port $MLFLOW_PORT; exec bash'
 ```
 
 ## Training Examples
@@ -28,12 +28,12 @@ Launch training scripts with tmux for persistent background execution (run from 
 
 **Behavioral Cloning (BC):**
 ```bash
-tmux new -s bc_train -d 'source .env && python algorithms/offline/any_percent_bc_minari.py'
+tmux new -s bc_train -d bash -c 'source .env && python algorithms/offline/any_percent_bc_minari.py; exec bash'
 ```
 
 **Advantage-Weighted Actor-Critic (AWAC):**
 ```bash
-tmux new -s awac_train -d 'source .env && python algorithms/offline/awac_minari.py'
+tmux new -s awac_train -d bash -c 'source .env && python algorithms/offline/awac_minari.py; exec bash'
 ```
 
 2. Create a `.env` file in the project root:
