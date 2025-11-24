@@ -33,6 +33,9 @@ class TrainConfig:
     gamma: float = 0.99
     tau: float = 5e-3
     awac_lambda: float = 1.0
+    eval_frequency: int = 1000
+    n_test_episodes: int = 10
+    test_seed: int = 69
     # MLflow logging
     experiment_name: str = "CORL-Minari"
     run_name: str = "AWAC"
@@ -143,6 +146,16 @@ class Actor(nn.Module):
         action.clamp_(self._min_action, self._max_action)
         log_prob = policy.log_prob(action).sum(-1, keepdim=True)
         return action, log_prob
+
+    def act(self, state: np.ndarray, device: str) -> np.ndarray:
+        state_t = torch.tensor(state[None], dtype=torch.float32, device=device)
+        policy = self._get_policy(state_t)
+        if self._mlp.training:
+            action_t = policy.sample()
+        else:
+            action_t = policy.mean
+        action = action_t[0].cpu().numpy()
+        return action
 
 
 class Critic(nn.Module):
@@ -265,6 +278,28 @@ def set_seed(seed: int, deterministic_torch: bool = False):
     torch.use_deterministic_algorithms(deterministic_torch)
 
 
+def make_minari_evaluator(env, n_episodes: int, seed: int, device: str):
+    @torch.no_grad()
+    def _eval_actor(actor: Actor) -> np.ndarray:
+        env.reset(seed=seed)
+        actor.eval()
+        episode_rewards = []
+        for _ in range(n_episodes):
+            state, info = env.reset()
+            done = False
+            episode_reward = 0.0
+            while not done:
+                action = actor.act(state, device)
+                state, reward, terminated, truncated, info = env.step(action)
+                done = terminated or truncated
+                episode_reward += reward
+            episode_rewards.append(episode_reward)
+        actor.train()
+        return np.asarray(episode_rewards)
+
+    return _eval_actor
+
+
 def setup_mlflow():
     """Setup MLflow tracking with configuration from .env file."""
     load_dotenv()
@@ -326,9 +361,13 @@ def train(config: TrainConfig):
             "gamma": config.gamma,
             "tau": config.tau,
             "awac_lambda": config.awac_lambda,
+                "eval_frequency": config.eval_frequency,
+                "n_test_episodes": config.n_test_episodes,
+                "test_seed": config.test_seed,
         })
 
         dataset = minari.load_dataset(config.dataset_id, download=config.download)
+        env = dataset.recover_environment()
         state_dim = int(np.prod(dataset.observation_space.shape))
         action_dim = int(np.prod(dataset.action_space.shape))
         transitions = minari_dataset_to_transitions(dataset)
@@ -375,6 +414,12 @@ def train(config: TrainConfig):
             tau=config.tau,
             awac_lambda=config.awac_lambda,
         )
+        eval_actor = make_minari_evaluator(
+            env=env,
+            n_episodes=config.n_test_episodes,
+            seed=config.test_seed,
+            device=config.device,
+        )
         for step in trange(config.num_train_steps, ncols=80):
             batch = replay_buffer.sample(config.batch_size)
             batch = [b.to(config.device) for b in batch]
@@ -382,6 +427,18 @@ def train(config: TrainConfig):
             # Log training metrics
             for key, value in update_result.items():
                 mlflow.log_metric(key, value, step=step)
+            if (step + 1) % config.eval_frequency == 0:
+                eval_scores = eval_actor(actor)
+                eval_score = eval_scores.mean()
+                mlflow.log_metric("eval_score", eval_score, step=step)
+                mlflow.log_metric("eval_score_std", eval_scores.std(), step=step)
+                if hasattr(env, "get_normalized_score"):
+                    normalized_eval_scores = env.get_normalized_score(eval_scores) * 100.0
+                    mlflow.log_metric(
+                        "normalized_score",
+                        normalized_eval_scores.mean(),
+                        step=step,
+                    )
 
 
 if __name__ == "__main__":

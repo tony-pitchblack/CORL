@@ -161,25 +161,28 @@ def set_seed(seed: int, env: Optional[gym.Env] = None):
 
 
 @torch.no_grad()
-def eval_actor(
-    env: gym.Env, actor: nn.Module, device: str, n_episodes: int, seed: int
-) -> np.ndarray:
-    env.reset(seed=seed)
-    actor.eval()
-    episode_rewards = []
-    for _ in range(n_episodes):
-        state, info = env.reset()
-        done = False
-        episode_reward = 0.0
-        while not done:
-            action = actor.act(state, device)
-            state, reward, terminated, truncated, info = env.step(action)
-            done = terminated or truncated
-            episode_reward += reward
-        episode_rewards.append(episode_reward)
+def make_minari_evaluator(
+    env: gym.Env, n_episodes: int, seed: int, device: str
+):
+    @torch.no_grad()
+    def _eval_actor(actor: nn.Module) -> np.ndarray:
+        env.reset(seed=seed)
+        actor.eval()
+        episode_rewards = []
+        for _ in range(n_episodes):
+            state, info = env.reset()
+            done = False
+            episode_reward = 0.0
+            while not done:
+                action = actor.act(state, device)
+                state, reward, terminated, truncated, info = env.step(action)
+                done = terminated or truncated
+                episode_reward += reward
+            episode_rewards.append(episode_reward)
+        actor.train()
+        return np.asarray(episode_rewards)
 
-    actor.train()
-    return np.asarray(episode_rewards)
+    return _eval_actor
 
 
 def setup_mlflow():
@@ -325,6 +328,12 @@ def train(config: TrainConfig):
         else:
             state_mean = np.zeros(state_dim)
             state_std = np.ones(state_dim)
+        eval_actor = make_minari_evaluator(
+            env=env,
+            n_episodes=config.n_episodes,
+            seed=config.seed,
+            device=config.device,
+        )
         replay_buffer = ReplayBuffer(
             state_dim=state_dim,
             action_dim=action_dim,
@@ -352,13 +361,7 @@ def train(config: TrainConfig):
             
             # Evaluate episode
             if (step + 1) % config.eval_freq == 0:
-                eval_scores = eval_actor(
-                    env,
-                    actor,
-                    device=config.device,
-                    n_episodes=config.n_episodes,
-                    seed=config.seed,
-                )
+                eval_scores = eval_actor(actor)
                 eval_score = eval_scores.mean()
                 mlflow.log_metric("eval_score", eval_score, step=step)
                 mlflow.log_metric("eval_score_std", eval_scores.std(), step=step)
