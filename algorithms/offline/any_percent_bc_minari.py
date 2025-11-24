@@ -14,6 +14,7 @@ import torch.nn.functional as F
 from tqdm import trange
 import mlflow
 from dotenv import load_dotenv
+import gymnasium as gym
 
 
 TensorBatch = List[torch.Tensor]
@@ -52,42 +53,15 @@ def normalize_states(states: np.ndarray, mean: np.ndarray, std: np.ndarray):
 
 
 def wrap_env(
-    env,
+    env: gym.Env,
     state_mean: np.ndarray,
     state_std: np.ndarray,
-):
-    class NormalizedEnv:
-        def __init__(self, env, state_mean, state_std):
-            self._env = env
-            self._state_mean = state_mean
-            self._state_std = state_std
+) -> gym.Env:
+    def normalize_state(state):
+        return (state - state_mean) / state_std
 
-        def reset(self, *args, **kwargs):
-            out = self._env.reset(*args, **kwargs)
-            if isinstance(out, tuple) and len(out) == 2:
-                obs, info = out
-                obs = (obs - self._state_mean) / self._state_std
-                return obs, info
-            obs = out
-            obs = (obs - self._state_mean) / self._state_std
-            return obs
-
-        def step(self, action):
-            out = self._env.step(action)
-            if isinstance(out, tuple) and len(out) == 5:
-                obs, reward, terminated, truncated, info = out
-                obs = (obs - self._state_mean) / self._state_std
-                return obs, reward, terminated, truncated, info
-            if isinstance(out, tuple) and len(out) == 4:
-                obs, reward, done, info = out
-                obs = (obs - self._state_mean) / self._state_std
-                return obs, reward, done, info
-            return out
-
-        def __getattr__(self, name):
-            return getattr(self._env, name)
-
-    return NormalizedEnv(env)
+    env = gym.wrappers.TransformObservation(env, normalize_state)
+    return env
 
 
 def keep_best_trajectories(
@@ -177,7 +151,7 @@ class ReplayBuffer:
         return [states, actions, rewards, next_states, dones]
 
 
-def set_seed(seed: int, env: Optional[Any] = None):
+def set_seed(seed: int, env: Optional[gym.Env] = None):
     if env is not None:
         env.reset(seed=seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
@@ -188,7 +162,7 @@ def set_seed(seed: int, env: Optional[Any] = None):
 
 @torch.no_grad()
 def make_minari_evaluator(
-    env, n_episodes: int, seed: int, device: str
+    env: gym.Env, n_episodes: int, seed: int, device: str
 ):
     @torch.no_grad()
     def _eval_actor(actor: nn.Module) -> np.ndarray:

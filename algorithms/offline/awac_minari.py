@@ -14,6 +14,7 @@ import torch.nn as nn
 from tqdm import trange
 import mlflow
 from dotenv import load_dotenv
+import gymnasium as gym
 
 
 TensorBatch = List[torch.Tensor]
@@ -278,7 +279,7 @@ def set_seed(seed: int, deterministic_torch: bool = False):
     torch.use_deterministic_algorithms(deterministic_torch)
 
 
-def make_minari_evaluator(env, n_episodes: int, seed: int, device: str):
+def make_minari_evaluator(env: gym.Env, n_episodes: int, seed: int, device: str):
     @torch.no_grad()
     def _eval_actor(actor: Actor) -> np.ndarray:
         env.reset(seed=seed)
