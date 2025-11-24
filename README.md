@@ -6,7 +6,22 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 
-🧵 CORL is an Offline Reinforcement Learning library that provides high-quality and easy-to-follow single-file implementations of SOTA ORL algorithms. Each implementation is backed by a research-friendly codebase, allowing you to run or tune thousands of experiments. Heavily inspired by [cleanrl](https://github.com/vwxyzjn/cleanrl) for online RL, check them out too!<br/>
+🧵 CORL is an Offline Reinforcement Learning library that provides high-quality and easy-to-follow single-file implementations of SOTA ORL algorithms. Each implementation is backed by a research-friendly codebase, allowing you to run or tune thousands of experiments. Heavily inspired by [cleanrl](https://github.com/vwxyzjn/cleanrl) for online RL, check them out too!
+
+## MLflow Setup (for Minari-based algorithms)
+
+Minari-based algorithms (`algorithms/offline/*_minari.py`) use MLflow for experiment tracking. To use them:
+
+1. Start MLflow server:
+```bash
+mlflow server --host 0.0.0.0 --port 5001
+```
+
+2. Create a `.env` file in the project root:
+```env
+MLFLOW_HOST=localhost
+MLFLOW_PORT=5001
+```<br/>
 
 * 📜 Single-file implementation
 * 📈 Benchmarked Implementation for N algorithms

@@ -9,3 +9,4 @@ dependencies:
       - torch==2.2.0+cu121
       - minari[hf,hdf5]
       - pyrallis
+      - mlflow

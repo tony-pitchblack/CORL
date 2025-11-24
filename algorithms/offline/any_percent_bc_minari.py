@@ -12,6 +12,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import trange
+import mlflow
+from dotenv import load_dotenv
 
 
 TensorBatch = List[torch.Tensor]
@@ -19,6 +21,7 @@ TensorBatch = List[torch.Tensor]
 
 @dataclass
 class TrainConfig:
+    # Experiment
     dataset_id: str = "D4RL/door/human-v2"
     download: bool = True
     device: str = "cuda"
@@ -30,6 +33,9 @@ class TrainConfig:
     max_traj_len: int = 1000
     discount: float = 0.99
     normalize: bool = True
+    # MLflow logging
+    experiment_name: str = "CORL-Minari"
+    run_name: str = "BC-Minari"
 
 
 def compute_mean_std(states: np.ndarray, eps: float) -> Tuple[np.ndarray, np.ndarray]:
@@ -136,6 +142,15 @@ def set_seed(seed: int):
     torch.manual_seed(seed)
 
 
+def setup_mlflow():
+    """Setup MLflow tracking with configuration from .env file."""
+    load_dotenv()
+    mlflow_host = os.getenv("MLFLOW_HOST", "localhost")
+    mlflow_port = os.getenv("MLFLOW_PORT", "5001")
+    tracking_uri = f"http://{mlflow_host}:{mlflow_port}"
+    mlflow.set_tracking_uri(tracking_uri)
+
+
 class Actor(nn.Module):
     def __init__(self, state_dim: int, action_dim: int, max_action: float):
         super().__init__()
@@ -175,14 +190,21 @@ class BC:
         self.device = device
 
     def train(self, batch: TensorBatch) -> Dict[str, float]:
+        log_dict = {}
         self.total_it += 1
         state, action, _, _, _ = batch
+
+        # Compute actor loss
         pi = self.actor(state)
         actor_loss = F.mse_loss(pi, action)
+        log_dict["actor_loss"] = actor_loss.item()
+
+        # Optimize the actor
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
-        return {"actor_loss": actor_loss.item()}
+
+        return log_dict
 
 
 def minari_dataset_to_d4rl(dataset) -> Dict[str, np.ndarray]:
@@ -220,47 +242,67 @@ def minari_dataset_to_d4rl(dataset) -> Dict[str, np.ndarray]:
 @pyrallis.wrap()
 def train(config: TrainConfig):
     set_seed(config.seed)
-    dataset = minari.load_dataset(config.dataset_id, download=config.download)
-    state_dim = int(np.prod(dataset.observation_space.shape))
-    action_dim = int(np.prod(dataset.action_space.shape))
-    d4rl_dataset = minari_dataset_to_d4rl(dataset)
-    keep_best_trajectories(
-        d4rl_dataset,
-        frac=config.frac,
-        discount=config.discount,
-        max_episode_steps=config.max_traj_len,
-    )
-    if config.normalize:
-        state_mean, state_std = compute_mean_std(
-            d4rl_dataset["observations"], eps=1e-3
+
+    # Setup MLflow
+    setup_mlflow()
+    mlflow.set_experiment(config.experiment_name)
+    with mlflow.start_run(run_name=config.run_name):
+        # Log configuration
+        mlflow.log_params({
+            "dataset_id": config.dataset_id,
+            "seed": config.seed,
+            "num_train_steps": config.num_train_steps,
+            "batch_size": config.batch_size,
+            "frac": config.frac,
+            "max_traj_len": config.max_traj_len,
+            "discount": config.discount,
+            "normalize": config.normalize,
+        })
+
+        dataset = minari.load_dataset(config.dataset_id, download=config.download)
+        state_dim = int(np.prod(dataset.observation_space.shape))
+        action_dim = int(np.prod(dataset.action_space.shape))
+        d4rl_dataset = minari_dataset_to_d4rl(dataset)
+        keep_best_trajectories(
+            d4rl_dataset,
+            frac=config.frac,
+            discount=config.discount,
+            max_episode_steps=config.max_traj_len,
         )
-        d4rl_dataset["observations"] = normalize_states(
-            d4rl_dataset["observations"], state_mean, state_std
+        if config.normalize:
+            state_mean, state_std = compute_mean_std(
+                d4rl_dataset["observations"], eps=1e-3
+            )
+            d4rl_dataset["observations"] = normalize_states(
+                d4rl_dataset["observations"], state_mean, state_std
+            )
+            d4rl_dataset["next_observations"] = normalize_states(
+                d4rl_dataset["next_observations"], state_mean, state_std
+            )
+        replay_buffer = ReplayBuffer(
+            state_dim=state_dim,
+            action_dim=action_dim,
+            buffer_size=config.buffer_size,
+            device=config.device,
         )
-        d4rl_dataset["next_observations"] = normalize_states(
-            d4rl_dataset["next_observations"], state_mean, state_std
+        replay_buffer.load_d4rl_dataset(d4rl_dataset)
+        max_action = float(dataset.action_space.high[0])
+        actor = Actor(state_dim, action_dim, max_action).to(config.device)
+        actor_optimizer = torch.optim.Adam(actor.parameters(), lr=3e-4)
+        trainer = BC(
+            max_action=max_action,
+            actor=actor,
+            actor_optimizer=actor_optimizer,
+            discount=config.discount,
+            device=config.device,
         )
-    replay_buffer = ReplayBuffer(
-        state_dim=state_dim,
-        action_dim=action_dim,
-        buffer_size=config.buffer_size,
-        device=config.device,
-    )
-    replay_buffer.load_d4rl_dataset(d4rl_dataset)
-    max_action = float(dataset.action_space.high[0])
-    actor = Actor(state_dim, action_dim, max_action).to(config.device)
-    actor_optimizer = torch.optim.Adam(actor.parameters(), lr=3e-4)
-    trainer = BC(
-        max_action=max_action,
-        actor=actor,
-        actor_optimizer=actor_optimizer,
-        discount=config.discount,
-        device=config.device,
-    )
-    for _ in trange(config.num_train_steps, ncols=80):
-        batch = replay_buffer.sample(config.batch_size)
-        batch = [b.to(config.device) for b in batch]
-        trainer.train(batch)
+        for step in trange(config.num_train_steps, ncols=80):
+            batch = replay_buffer.sample(config.batch_size)
+            batch = [b.to(config.device) for b in batch]
+            log_dict = trainer.train(batch)
+            # Log training metrics
+            for key, value in log_dict.items():
+                mlflow.log_metric(key, value, step=step)
 
 
 if __name__ == "__main__":

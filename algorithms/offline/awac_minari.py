@@ -12,6 +12,8 @@ import pyrallis
 import torch
 import torch.nn as nn
 from tqdm import trange
+import mlflow
+from dotenv import load_dotenv
 
 
 TensorBatch = List[torch.Tensor]
@@ -31,6 +33,9 @@ class TrainConfig:
     gamma: float = 0.99
     tau: float = 5e-3
     awac_lambda: float = 1.0
+    # MLflow logging
+    experiment_name: str = "CORL-Minari"
+    run_name: str = "AWAC-Minari"
 
 
 class ReplayBuffer:
@@ -260,6 +265,15 @@ def set_seed(seed: int, deterministic_torch: bool = False):
     torch.use_deterministic_algorithms(deterministic_torch)
 
 
+def setup_mlflow():
+    """Setup MLflow tracking with configuration from .env file."""
+    load_dotenv()
+    mlflow_host = os.getenv("MLFLOW_HOST", "localhost")
+    mlflow_port = os.getenv("MLFLOW_PORT", "5001")
+    tracking_uri = f"http://{mlflow_host}:{mlflow_port}"
+    mlflow.set_tracking_uri(tracking_uri)
+
+
 def minari_dataset_to_transitions(dataset) -> Dict[str, np.ndarray]:
     observations = []
     actions = []
@@ -295,57 +309,79 @@ def minari_dataset_to_transitions(dataset) -> Dict[str, np.ndarray]:
 @pyrallis.wrap()
 def train(config: TrainConfig):
     set_seed(config.seed, deterministic_torch=config.deterministic_torch)
-    dataset = minari.load_dataset(config.dataset_id, download=config.download)
-    state_dim = int(np.prod(dataset.observation_space.shape))
-    action_dim = int(np.prod(dataset.action_space.shape))
-    transitions = minari_dataset_to_transitions(dataset)
-    n_transitions = transitions["observations"].shape[0]
-    replay_buffer = ReplayBuffer(
-        state_dim=state_dim,
-        action_dim=action_dim,
-        buffer_size=n_transitions,
-        device=config.device,
-    )
-    replay_buffer.load(
-        transitions["observations"],
-        transitions["actions"],
-        transitions["rewards"],
-        transitions["next_observations"],
-        transitions["dones"],
-    )
-    min_action = float(dataset.action_space.low.min())
-    max_action = float(dataset.action_space.high.max())
-    actor_critic_kwargs = {
-        "state_dim": state_dim,
-        "action_dim": action_dim,
-        "hidden_dim": config.hidden_dim,
-        "min_action": min_action,
-        "max_action": max_action,
-    }
-    actor = Actor(**actor_critic_kwargs)
-    actor.to(config.device)
-    actor_optimizer = torch.optim.Adam(actor.parameters(), lr=config.learning_rate)
-    critic_1 = Critic(state_dim=state_dim, action_dim=action_dim, hidden_dim=config.hidden_dim)
-    critic_2 = Critic(state_dim=state_dim, action_dim=action_dim, hidden_dim=config.hidden_dim)
-    critic_1.to(config.device)
-    critic_2.to(config.device)
-    critic_1_optimizer = torch.optim.Adam(critic_1.parameters(), lr=config.learning_rate)
-    critic_2_optimizer = torch.optim.Adam(critic_2.parameters(), lr=config.learning_rate)
-    awac = AdvantageWeightedActorCritic(
-        actor=actor,
-        actor_optimizer=actor_optimizer,
-        critic_1=critic_1,
-        critic_1_optimizer=critic_1_optimizer,
-        critic_2=critic_2,
-        critic_2_optimizer=critic_2_optimizer,
-        gamma=config.gamma,
-        tau=config.tau,
-        awac_lambda=config.awac_lambda,
-    )
-    for _ in trange(config.num_train_steps, ncols=80):
-        batch = replay_buffer.sample(config.batch_size)
-        batch = [b.to(config.device) for b in batch]
-        awac.update(batch)
+
+    # Setup MLflow
+    setup_mlflow()
+    mlflow.set_experiment(config.experiment_name)
+    with mlflow.start_run(run_name=config.run_name):
+        # Log configuration
+        mlflow.log_params({
+            "dataset_id": config.dataset_id,
+            "seed": config.seed,
+            "deterministic_torch": config.deterministic_torch,
+            "num_train_steps": config.num_train_steps,
+            "batch_size": config.batch_size,
+            "hidden_dim": config.hidden_dim,
+            "learning_rate": config.learning_rate,
+            "gamma": config.gamma,
+            "tau": config.tau,
+            "awac_lambda": config.awac_lambda,
+        })
+
+        dataset = minari.load_dataset(config.dataset_id, download=config.download)
+        state_dim = int(np.prod(dataset.observation_space.shape))
+        action_dim = int(np.prod(dataset.action_space.shape))
+        transitions = minari_dataset_to_transitions(dataset)
+        n_transitions = transitions["observations"].shape[0]
+        replay_buffer = ReplayBuffer(
+            state_dim=state_dim,
+            action_dim=action_dim,
+            buffer_size=n_transitions,
+            device=config.device,
+        )
+        replay_buffer.load(
+            transitions["observations"],
+            transitions["actions"],
+            transitions["rewards"],
+            transitions["next_observations"],
+            transitions["dones"],
+        )
+        min_action = float(dataset.action_space.low.min())
+        max_action = float(dataset.action_space.high.max())
+        actor_critic_kwargs = {
+            "state_dim": state_dim,
+            "action_dim": action_dim,
+            "hidden_dim": config.hidden_dim,
+            "min_action": min_action,
+            "max_action": max_action,
+        }
+        actor = Actor(**actor_critic_kwargs)
+        actor.to(config.device)
+        actor_optimizer = torch.optim.Adam(actor.parameters(), lr=config.learning_rate)
+        critic_1 = Critic(state_dim=state_dim, action_dim=action_dim, hidden_dim=config.hidden_dim)
+        critic_2 = Critic(state_dim=state_dim, action_dim=action_dim, hidden_dim=config.hidden_dim)
+        critic_1.to(config.device)
+        critic_2.to(config.device)
+        critic_1_optimizer = torch.optim.Adam(critic_1.parameters(), lr=config.learning_rate)
+        critic_2_optimizer = torch.optim.Adam(critic_2.parameters(), lr=config.learning_rate)
+        awac = AdvantageWeightedActorCritic(
+            actor=actor,
+            actor_optimizer=actor_optimizer,
+            critic_1=critic_1,
+            critic_1_optimizer=critic_1_optimizer,
+            critic_2=critic_2,
+            critic_2_optimizer=critic_2_optimizer,
+            gamma=config.gamma,
+            tau=config.tau,
+            awac_lambda=config.awac_lambda,
+        )
+        for step in trange(config.num_train_steps, ncols=80):
+            batch = replay_buffer.sample(config.batch_size)
+            batch = [b.to(config.device) for b in batch]
+            update_result = awac.update(batch)
+            # Log training metrics
+            for key, value in update_result.items():
+                mlflow.log_metric(key, value, step=step)
 
 
 if __name__ == "__main__":
