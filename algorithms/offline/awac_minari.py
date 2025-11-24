@@ -279,6 +279,24 @@ def set_seed(seed: int, deterministic_torch: bool = False):
     torch.use_deterministic_algorithms(deterministic_torch)
 
 
+def compute_mean_std(states: np.ndarray, eps: float) -> Tuple[np.ndarray, np.ndarray]:
+    mean = states.mean(0)
+    std = states.std(0) + eps
+    return mean, std
+
+
+def normalize_states(states: np.ndarray, mean: np.ndarray, std: np.ndarray):
+    return (states - mean) / std
+
+
+def wrap_env(env: gym.Env, state_mean: np.ndarray, state_std: np.ndarray) -> gym.Env:
+    def normalize_state(state):
+        return (state - state_mean) / state_std
+
+    env = gym.wrappers.TransformObservation(env, normalize_state)
+    return env
+
+
 def make_minari_evaluator(env: gym.Env, n_episodes: int, seed: int, device: str):
     @torch.no_grad()
     def _eval_actor(actor: Actor) -> np.ndarray:
@@ -372,6 +390,16 @@ def train(config: TrainConfig):
         state_dim = int(np.prod(dataset.observation_space.shape))
         action_dim = int(np.prod(dataset.action_space.shape))
         transitions = minari_dataset_to_transitions(dataset)
+        state_mean, state_std = compute_mean_std(
+            transitions["observations"], eps=1e-3
+        )
+        transitions["observations"] = normalize_states(
+            transitions["observations"], state_mean, state_std
+        )
+        transitions["next_observations"] = normalize_states(
+            transitions["next_observations"], state_mean, state_std
+        )
+        env = wrap_env(env, state_mean=state_mean, state_std=state_std)
         n_transitions = transitions["observations"].shape[0]
         replay_buffer = ReplayBuffer(
             state_dim=state_dim,
