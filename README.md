@@ -12,9 +12,14 @@
 
 Minari-based algorithms (`algorithms/offline/*_minari.py`) use MLflow for experiment tracking. To use them:
 
-1. Start MLflow server:
+1. Start MLflow server (using values from `.env` file):
 ```bash
-mlflow server --host 0.0.0.0 --port 5001
+source .env && mlflow server --host $MLFLOW_HOST --port $MLFLOW_PORT
+```
+
+   Or start in tmux for persistent background running (launch from project root):
+```bash
+tmux new -s mlflow -d 'source .env && mlflow server --host $MLFLOW_HOST --port $MLFLOW_PORT'
 ```
 
 2. Create a `.env` file in the project root:
