@@ -3,7 +3,7 @@
 import os
 import random
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import minari
 import numpy as np
@@ -14,6 +14,7 @@ import torch.nn.functional as F
 from tqdm import trange
 import mlflow
 from dotenv import load_dotenv
+import gymnasium as gym
 
 
 TensorBatch = List[torch.Tensor]
@@ -33,6 +34,9 @@ class TrainConfig:
     max_traj_len: int = 1000
     discount: float = 0.99
     normalize: bool = True
+    # Evaluation
+    eval_freq: int = int(5e3)
+    n_episodes: int = 10
     # MLflow logging
     experiment_name: str = "CORL-Minari"
     run_name: str = "BC"
@@ -46,6 +50,18 @@ def compute_mean_std(states: np.ndarray, eps: float) -> Tuple[np.ndarray, np.nda
 
 def normalize_states(states: np.ndarray, mean: np.ndarray, std: np.ndarray):
     return (states - mean) / std
+
+
+def wrap_env(
+    env: gym.Env,
+    state_mean: np.ndarray,
+    state_std: np.ndarray,
+) -> gym.Env:
+    def normalize_state(state):
+        return (state - state_mean) / state_std
+
+    env = gym.wrappers.TransformObservation(env, normalize_state)
+    return env
 
 
 def keep_best_trajectories(
@@ -135,11 +151,35 @@ class ReplayBuffer:
         return [states, actions, rewards, next_states, dones]
 
 
-def set_seed(seed: int):
+def set_seed(seed: int, env: Optional[gym.Env] = None):
+    if env is not None:
+        env.reset(seed=seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
+
+
+@torch.no_grad()
+def eval_actor(
+    env: gym.Env, actor: nn.Module, device: str, n_episodes: int, seed: int
+) -> np.ndarray:
+    env.reset(seed=seed)
+    actor.eval()
+    episode_rewards = []
+    for _ in range(n_episodes):
+        state, info = env.reset()
+        done = False
+        episode_reward = 0.0
+        while not done:
+            action = actor.act(state, device)
+            state, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
+            episode_reward += reward
+        episode_rewards.append(episode_reward)
+
+    actor.train()
+    return np.asarray(episode_rewards)
 
 
 def setup_mlflow():
@@ -241,8 +281,6 @@ def minari_dataset_to_d4rl(dataset) -> Dict[str, np.ndarray]:
 
 @pyrallis.wrap()
 def train(config: TrainConfig):
-    set_seed(config.seed)
-
     # Setup MLflow
     setup_mlflow()
     mlflow.set_experiment(config.experiment_name)
@@ -257,9 +295,13 @@ def train(config: TrainConfig):
             "max_traj_len": config.max_traj_len,
             "discount": config.discount,
             "normalize": config.normalize,
+            "eval_freq": config.eval_freq,
+            "n_episodes": config.n_episodes,
         })
 
         dataset = minari.load_dataset(config.dataset_id, download=config.download)
+        env = dataset.recover_environment()
+        set_seed(config.seed, env)
         state_dim = int(np.prod(dataset.observation_space.shape))
         action_dim = int(np.prod(dataset.action_space.shape))
         d4rl_dataset = minari_dataset_to_d4rl(dataset)
@@ -279,6 +321,10 @@ def train(config: TrainConfig):
             d4rl_dataset["next_observations"] = normalize_states(
                 d4rl_dataset["next_observations"], state_mean, state_std
             )
+            env = wrap_env(env, state_mean, state_std)
+        else:
+            state_mean = np.zeros(state_dim)
+            state_std = np.ones(state_dim)
         replay_buffer = ReplayBuffer(
             state_dim=state_dim,
             action_dim=action_dim,
@@ -303,6 +349,22 @@ def train(config: TrainConfig):
             # Log training metrics
             for key, value in log_dict.items():
                 mlflow.log_metric(key, value, step=step)
+            
+            # Evaluate episode
+            if (step + 1) % config.eval_freq == 0:
+                eval_scores = eval_actor(
+                    env,
+                    actor,
+                    device=config.device,
+                    n_episodes=config.n_episodes,
+                    seed=config.seed,
+                )
+                eval_score = eval_scores.mean()
+                mlflow.log_metric("eval_score", eval_score, step=step)
+                mlflow.log_metric("eval_score_std", eval_scores.std(), step=step)
+                if hasattr(env, "get_normalized_score"):
+                    normalized_eval_score = env.get_normalized_score(eval_scores) * 100.0
+                    mlflow.log_metric("normalized_score", normalized_eval_score.mean(), step=step)
 
 
 if __name__ == "__main__":

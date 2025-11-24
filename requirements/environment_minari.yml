@@ -5,6 +5,7 @@ dependencies:
   - PyYAML==6.0.2
   - pyarrow==20.0.0
   - mlflow
+  - gymnasium
   - pip
   - pip:
       - pydantic==2.5.3
