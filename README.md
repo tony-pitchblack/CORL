@@ -17,9 +17,23 @@ Minari-based algorithms (`algorithms/offline/*_minari.py`) use MLflow for experi
 source .env && mlflow server --host $MLFLOW_HOST --port $MLFLOW_PORT
 ```
 
-   Or start in tmux for persistent background running (launch from project root):
+   Or start in tmux for persistent background running:
 ```bash
 tmux new -s mlflow -d 'source .env && mlflow server --host $MLFLOW_HOST --port $MLFLOW_PORT'
+```
+
+## Training Examples
+
+Launch training scripts with tmux for persistent background execution (run from project root):
+
+**Behavioral Cloning (BC):**
+```bash
+tmux new -s bc_train -d 'source .env && python algorithms/offline/any_percent_bc_minari.py'
+```
+
+**Advantage-Weighted Actor-Critic (AWAC):**
+```bash
+tmux new -s awac_train -d 'source .env && python algorithms/offline/awac_minari.py'
 ```
 
 2. Create a `.env` file in the project root:
