@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 import minari
+from minari.utils import get_normalized_score
 import numpy as np
 import pyrallis
 import torch
@@ -384,9 +385,12 @@ def train(config: TrainConfig):
                 eval_score = eval_scores.mean()
                 mlflow.log_metric("eval_score", eval_score, step=step)
                 mlflow.log_metric("eval_score_std", eval_scores.std(), step=step)
-                if hasattr(env, "get_normalized_score"):
-                    normalized_eval_score = env.get_normalized_score(eval_scores) * 100.0
-                    mlflow.log_metric("normalized_score", normalized_eval_score.mean(), step=step)
+                normalized_eval_score = get_normalized_score(
+                    dataset, eval_scores
+                ) * 100.0
+                mlflow.log_metric(
+                    "normalized_score", normalized_eval_score.mean(), step=step
+                )
 
 
 if __name__ == "__main__":
