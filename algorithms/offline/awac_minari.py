@@ -2,6 +2,7 @@
 
 import os
 import random
+import string
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
@@ -14,8 +15,10 @@ import torch
 import torch.nn as nn
 from tqdm import trange
 import mlflow
+import mlflow.data
 from dotenv import load_dotenv
 import gymnasium as gym
+import pandas as pd
 
 
 TensorBatch = List[torch.Tensor]
@@ -374,7 +377,11 @@ def train(config: TrainConfig):
     # Setup MLflow
     setup_mlflow()
     mlflow.set_experiment(config.experiment_name)
-    with mlflow.start_run(run_name=config.run_name):
+    algo_name = config.run_name
+    dataset_name = config.dataset_id.replace("/", "-")
+    random_suffix = "".join(random.choices(string.ascii_letters + string.digits, k=6))
+    run_name = f"{algo_name}-{dataset_name}-{random_suffix}"
+    with mlflow.start_run(run_name=run_name):
         # Log configuration
         mlflow.log_params({
             "dataset_id": config.dataset_id,
@@ -394,6 +401,14 @@ def train(config: TrainConfig):
 
         dataset = minari.load_dataset(config.dataset_id, download=config.download)
         env = dataset.recover_environment()
+        env_name = getattr(getattr(env, "spec", None), "id", None) or config.dataset_id
+        env_df = pd.DataFrame(columns=[env_name])
+        env_dataset = mlflow.data.from_pandas(
+            env_df,
+            source=env_name,
+            name=env_name,
+        )
+        mlflow.log_input(env_dataset, context="environment")
         state_dim = int(np.prod(dataset.observation_space.shape))
         action_dim = int(np.prod(dataset.action_space.shape))
         transitions = minari_dataset_to_transitions(dataset)
