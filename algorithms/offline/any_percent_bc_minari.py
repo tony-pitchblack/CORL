@@ -14,7 +14,6 @@ import torch.nn.functional as F
 from tqdm import trange
 import mlflow
 from dotenv import load_dotenv
-import gymnasium as gym
 
 
 TensorBatch = List[torch.Tensor]
