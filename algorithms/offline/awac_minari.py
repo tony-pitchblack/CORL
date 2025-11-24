@@ -35,7 +35,7 @@ class TrainConfig:
     awac_lambda: float = 1.0
     # MLflow logging
     experiment_name: str = "CORL-Minari"
-    run_name: str = "AWAC-Minari"
+    run_name: str = "AWAC"
 
 
 class ReplayBuffer:

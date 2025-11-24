@@ -35,7 +35,7 @@ class TrainConfig:
     normalize: bool = True
     # MLflow logging
     experiment_name: str = "CORL-Minari"
-    run_name: str = "BC-Minari"
+    run_name: str = "BC"
 
 
 def compute_mean_std(states: np.ndarray, eps: float) -> Tuple[np.ndarray, np.ndarray]:
