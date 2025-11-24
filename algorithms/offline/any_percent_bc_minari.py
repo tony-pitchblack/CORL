@@ -20,6 +20,25 @@ import gymnasium as gym
 TensorBatch = List[torch.Tensor]
 
 
+class NormalizedObservationWrapper(gym.ObservationWrapper):
+    def __init__(self, env: gym.Env, state_mean: np.ndarray, state_std: np.ndarray):
+        super().__init__(env)
+        self._state_mean = state_mean
+        self._state_std = state_std
+
+    def observation(self, observation: np.ndarray) -> np.ndarray:
+        return (observation - self._state_mean) / self._state_std
+
+
+class ScaledRewardWrapper(gym.RewardWrapper):
+    def __init__(self, env: gym.Env, scale: float):
+        super().__init__(env)
+        self._scale = scale
+
+    def reward(self, reward: float) -> float:
+        return self._scale * reward
+
+
 @dataclass
 class TrainConfig:
     # Experiment
@@ -58,15 +77,9 @@ def wrap_env(
     state_std: np.ndarray = 1.0,
     reward_scale: float = 1.0,
 ) -> gym.Env:
-    def normalize_state(state):
-        return (state - state_mean) / state_std
-
-    def scale_reward(reward):
-        return reward_scale * reward
-
-    env = gym.wrappers.TransformObservation(env, normalize_state)
+    env = NormalizedObservationWrapper(env, state_mean, state_std)
     if reward_scale != 1.0:
-        env = gym.wrappers.TransformReward(env, scale_reward)
+        env = ScaledRewardWrapper(env, reward_scale)
     return env
 
 

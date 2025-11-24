@@ -279,6 +279,16 @@ def set_seed(seed: int, deterministic_torch: bool = False):
     torch.use_deterministic_algorithms(deterministic_torch)
 
 
+class NormalizedObservationWrapper(gym.ObservationWrapper):
+    def __init__(self, env: gym.Env, state_mean: np.ndarray, state_std: np.ndarray):
+        super().__init__(env)
+        self._state_mean = state_mean
+        self._state_std = state_std
+
+    def observation(self, observation: np.ndarray) -> np.ndarray:
+        return (observation - self._state_mean) / self._state_std
+
+
 def compute_mean_std(states: np.ndarray, eps: float) -> Tuple[np.ndarray, np.ndarray]:
     mean = states.mean(0)
     std = states.std(0) + eps
@@ -290,11 +300,7 @@ def normalize_states(states: np.ndarray, mean: np.ndarray, std: np.ndarray):
 
 
 def wrap_env(env: gym.Env, state_mean: np.ndarray, state_std: np.ndarray) -> gym.Env:
-    def normalize_state(state):
-        return (state - state_mean) / state_std
-
-    env = gym.wrappers.TransformObservation(env, normalize_state)
-    return env
+    return NormalizedObservationWrapper(env, state_mean, state_std)
 
 
 def make_minari_evaluator(env: gym.Env, n_episodes: int, seed: int, device: str):
