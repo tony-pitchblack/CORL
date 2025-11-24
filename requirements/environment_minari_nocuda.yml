@@ -1,4 +1,7 @@
-name: corl-minari
+name: corl-minari-nocuda
+channels:
+  - conda-forge
+  - defaults
 dependencies:
   - python==3.11
   - numpy==1.26.4
@@ -10,11 +13,12 @@ dependencies:
   - pip
   - pip:
       - pydantic==2.5.3
-      - torch==2.2.0+cu121
+      - torch==2.2.0
       - minari[hf,hdf5]
       - pyrallis
       - gymnasium
       - gymnasium-robotics>=1.2.4
       - mujoco<3
-      - numpy==1.26.4
       - minigrid
+
+
