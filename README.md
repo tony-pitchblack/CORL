@@ -45,9 +45,19 @@ tmux kill-session -t bc_discrete 2>/dev/null || true; tmux new -s bc_discrete ba
 tmux kill-session -t awac 2>/dev/null || true; tmux new -s awac bash -c 'source .env && python algorithms/offline/awac_minari.py; exec bash'
 ```
 
+**Critic-Regularized Regression (CRR, AWAC-style critic):**
+```bash
+tmux kill-session -t crr_awac 2>/dev/null || true; tmux new -s crr_awac bash -c 'source .env && python algorithms/offline/crr_awac_minari.py; exec bash'
+```
+
 **Critic-Regularized Regression (CRR):**
 ```bash
 tmux kill-session -t crr 2>/dev/null || true; tmux new -s crr bash -c 'source .env && python algorithms/offline/crr_minari.py; exec bash'
+```
+
+**Critic-Regularized Regression with AWAC Actor and Distributional Critic (CRR-AWAC-Distributional):**
+```bash
+tmux kill-session -t crr_awac_dist 2>/dev/null || true; tmux new -s crr_awac_dist bash -c 'source .env && python algorithms/offline/crr_awac_distributional_minari.py; exec bash'
 ```
 
 **Online DQN via Papermill:**
