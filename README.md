@@ -19,7 +19,11 @@ source .env && mlflow server --host $MLFLOW_HOST --port $MLFLOW_PORT
 
    Or start in tmux for persistent background running:
 ```bash
-tmux new -s mlflow -d bash -c 'source .env && mlflow server --host $MLFLOW_HOST --port $MLFLOW_PORT; exec bash'
+tmux kill-session -t mlflow 2>/dev/null || true; tmux new -s mlflow zsh -c 'source .env && mlflow server --host $MLFLOW_HOST --port $MLFLOW_PORT; exec zsh'
+```
+
+```zsh
+tmux kill-session -t mlflow 2>/dev/null || true; tmux new -s mlflow zsh -c 'source .env && mlflow server --host $MLFLOW_HOST --port $MLFLOW_PORT; exec zsh'
 ```
 
 ## Training Examples
