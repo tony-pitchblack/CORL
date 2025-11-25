@@ -8,6 +8,7 @@ dependencies:
   - ipykernel
   - ipywidgets
   - pip
+  - pandas
   - pip:
       - pydantic==2.5.3
       - torch==2.2.0+cu121
