@@ -20,13 +20,17 @@ from dotenv import load_dotenv
 import gymnasium as gym
 import pandas as pd
 
+# DATASET_ID = "D4RL/door/human-v2"
+DATASET_ID = "minigrid/BabyAI-GoToObjS4/optimal-fullobs-v0"
+# DATASET_ID = "minigrid/BabyAI-GoToObj/optimal-fullobs-v0"
+
 
 TensorBatch = List[torch.Tensor]
 
 
 @dataclass
 class TrainConfig:
-    dataset_id: str = "D4RL/door/human-v2"
+    dataset_id: str = DATASET_ID
     download: bool = True
     seed: int = 42
     deterministic_torch: bool = False
@@ -42,7 +46,7 @@ class TrainConfig:
     n_test_episodes: int = 10
     test_seed: int = 69
     # MLflow logging
-    experiment_name: str = "CORL-Minari"
+    experiment_name: str = f"AWAC-{DATASET_ID}"
     run_name: str = "AWAC"
 
 

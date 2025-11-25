@@ -20,6 +20,9 @@ from dotenv import load_dotenv
 import gymnasium as gym
 import pandas as pd
 
+# DATASET_ID = "D4RL/door/human-v2"
+DATASET_ID = "minigrid/BabyAI-GoToObjS4/optimal-fullobs-v0"
+# DATASET_ID = "minigrid/BabyAI-GoToObj/optimal-fullobs-v0"
 
 TensorBatch = List[torch.Tensor]
 
@@ -46,14 +49,14 @@ class ScaledRewardWrapper(gym.RewardWrapper):
 @dataclass
 class TrainConfig:
     # Experiment
-    dataset_id: str = "D4RL/door/human-v2"
+    dataset_id: str = DATASET_ID
     download: bool = True
     device: str = "cuda:1"
     seed: int = 0
     num_train_steps: int = int(1e6)
     batch_size: int = 256
     buffer_size: int = 2_000_000
-    frac: float = 0.1
+    frac: float = 1.0
     max_traj_len: int = 1000
     discount: float = 0.99
     normalize: bool = True
@@ -61,7 +64,7 @@ class TrainConfig:
     eval_freq: int = int(5e3)
     n_episodes: int = 10
     # MLflow logging
-    experiment_name: str = "CORL-Minari"
+    experiment_name: str = f"BC-{DATASET_ID}"
     run_name: str = "BC"
 
 
