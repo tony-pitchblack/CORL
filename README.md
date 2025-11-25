@@ -49,6 +49,18 @@ tmux kill-session -t dqn 2>/dev/null || true; tmux new -s dqn bash -c 'source .e
 tmux kill-session -t dqn 2>/dev/null || true; tmux new -s dqn zsh -c 'source .env && papermill algorithms/online/dqn.ipynb algorithms/online/dqn_executed.ipynb; exec zsh'
 ```
 
+
+**Double DQN (Online) via Papermill:**
+```bash
+tmux kill-session -t double_dqn 2>/dev/null || true; tmux new -s double_dqn bash -c 'source .env && papermill algorithms/online/double_dqn.ipynb algorithms/online/double_dqn_executed.ipynb; exec bash'
+```
+
+```zsh
+tmux kill-session -t double_dqn 2>/dev/null || true; tmux new -s double_dqn zsh -c 'source .env && papermill algorithms/online/double_dqn.ipynb algorithms/online/double_dqn_executed.ipynb; exec zsh'
+```
+
+
+
 The DQN notebook `algorithms/online/dqn.ipynb` contains several preset configurations (e.g. Minigrid BabyAI, MiniGrid-Empty-5x5, CartPole). Edit the configuration cell at the top of the notebook to choose the desired environment and hyperparameters before running it with papermill.
 
 2. Create a `.env` file in the project root:
