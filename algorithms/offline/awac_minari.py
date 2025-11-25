@@ -20,10 +20,7 @@ from dotenv import load_dotenv
 import gymnasium as gym
 import pandas as pd
 
-# DATASET_ID = "D4RL/door/human-v2"
-DATASET_ID = "minigrid/BabyAI-GoToObjS4/optimal-fullobs-v0"
-# DATASET_ID = "minigrid/BabyAI-GoToObj/optimal-fullobs-v0"
-
+DATASET_ID = "D4RL/door/human-v2"
 
 TensorBatch = List[torch.Tensor]
 
