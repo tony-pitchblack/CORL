@@ -62,7 +62,8 @@ class TrainConfig:
     eval_freq: int = int(5e3)
     n_episodes: int = 10
     # MLflow logging
-    experiment_name: str = f"BC-{DATASET_ID}"
+    # experiment_name: str = f"offline:{DATASET_ID}"
+    experiment_name: str = "CORL-Minari"
     run_name: str = "BC"
 
 

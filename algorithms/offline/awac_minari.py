@@ -43,7 +43,8 @@ class TrainConfig:
     n_test_episodes: int = 10
     test_seed: int = 69
     # MLflow logging
-    experiment_name: str = f"AWAC-{DATASET_ID}"
+    # experiment_name: str = f"offline:{DATASET_ID}"
+    experiment_name: str = "CORL-Minari"
     run_name: str = "AWAC"
 
 
