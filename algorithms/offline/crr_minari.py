@@ -22,6 +22,7 @@ import gymnasium as gym
 import pandas as pd
 
 DATASET_ID = "D4RL/door/human-v2"
+CRR_WEIGHT_TYPE = "exp"
 
 TensorBatch = List[torch.Tensor]
 
@@ -63,14 +64,14 @@ class TrainConfig:
     critic_lr: float = 3e-4
     tau: float = 5e-3
     crr_beta: float = 1.0
-    crr_weight_type: str = "binary"  # "binary" or "exp"
+    crr_weight_type: str = CRR_WEIGHT_TYPE  # "binary" or "exp"
     crr_max_weight: float = 20.0
     # Evaluation
     eval_freq: int = int(5e3)
     n_episodes: int = 10
     # MLflow logging
     experiment_name: str = "CORL-Minari"
-    run_name: str = "CRR"
+    run_name: str = "CRR-base-{CRR_WEIGHT_TYPE}"
 
 
 def compute_mean_std(states: np.ndarray, eps: float) -> Tuple[np.ndarray, np.ndarray]:

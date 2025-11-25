@@ -22,6 +22,7 @@ import gymnasium as gym
 import pandas as pd
 
 DATASET_ID = "D4RL/door/human-v2"
+CRR_WEIGHT_TYPE = "exp"
 
 TensorBatch = List[torch.Tensor]
 
@@ -41,13 +42,13 @@ class TrainConfig:
     gamma: float = 0.99
     tau: float = 5e-3
     crr_beta: float = 1.0
-    crr_weight_type: str = "binary"
+    crr_weight_type: str = CRR_WEIGHT_TYPE
     crr_max_weight: float = 20.0
     eval_frequency: int = 1000
     n_test_episodes: int = 10
     test_seed: int = 69
     experiment_name: str = "CORL-Minari"
-    run_name: str = "CRR-AWAC"
+    run_name: str = "CRR-{CRR_WEIGHT_TYPE}"
 
 
 class ReplayBuffer:

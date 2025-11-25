@@ -22,6 +22,7 @@ import torch.nn.functional as F
 from tqdm import trange
 
 DATASET_ID = "D4RL/door/human-v2"
+CRR_WEIGHT_TYPE = "exp"
 
 TensorBatch = List[torch.Tensor]
 
@@ -32,7 +33,7 @@ class TrainConfig:
     download: bool = True
     seed: int = 42
     deterministic_torch: bool = False
-    device: str = "cuda:2"
+    device: str = "cuda:3"
     num_train_steps: int = 1_000_000
     batch_size: int = 256
     hidden_dim: int = 256
@@ -40,7 +41,7 @@ class TrainConfig:
     gamma: float = 0.99
     tau: float = 5e-3
     crr_beta: float = 1.0
-    crr_weight_type: str = "binary"  # "binary" or "exp"
+    crr_weight_type: str = CRR_WEIGHT_TYPE  # "binary" or "exp"
     crr_max_weight: float = 20.0
     n_atoms: int = 51
     v_min: float = -10.0
@@ -49,7 +50,7 @@ class TrainConfig:
     n_test_episodes: int = 10
     test_seed: int = 69
     experiment_name: str = "CORL-Minari"
-    run_name: str = "CRR-AWAC-Distributional"
+    run_name: str = "CRR-Distributional-{CRR_WEIGHT_TYPE}"
 
 
 class ReplayBuffer:
