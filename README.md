@@ -35,6 +35,11 @@ Launch training scripts with tmux for persistent background execution (run from 
 tmux kill-session -t bc 2>/dev/null || true; tmux new -s bc bash -c 'source .env && python algorithms/offline/any_percent_bc_minari.py; exec bash'
 ```
 
+**Behavioral Cloning (BC, discrete Minari/Minigrid):**
+```bash
+tmux kill-session -t bc_discrete 2>/dev/null || true; tmux new -s bc_discrete bash -c 'source .env && python algorithms/offline_discrete/any_percent_bc_minari.py; exec bash'
+```
+
 **Advantage-Weighted Actor-Critic (AWAC):**
 ```bash
 tmux kill-session -t awac 2>/dev/null || true; tmux new -s awac bash -c 'source .env && python algorithms/offline/awac_minari.py; exec bash'
