@@ -16,7 +16,7 @@ dependencies:
   - pip:
       - pydantic==2.5.3
       # - torch==2.2.0
-      - minari[hf,hdf5]
+      - minari[hf,hdf5,create]
       - pyrallis
       - gymnasium
       - gymnasium-robotics>=1.2.4
