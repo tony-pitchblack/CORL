@@ -15,12 +15,11 @@ dependencies:
   - papermill
   - pip:
       - pydantic==2.5.3
-      - torch==2.2.0
+      # - torch==2.2.0
       - minari[hf,hdf5]
       - pyrallis
       - gymnasium
       - gymnasium-robotics>=1.2.4
       - mujoco<3
       - minigrid
-
-
+      - rl_zoo3

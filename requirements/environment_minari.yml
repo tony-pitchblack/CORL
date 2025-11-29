@@ -12,7 +12,7 @@ dependencies:
   - papermill
   - pip:
       - pydantic==2.5.3
-      - torch==2.2.0+cu121
+      # - torch==2.2.0+cu121
       - minari[hf,hdf5]
       - pyrallis
       - gymnasium
@@ -20,3 +20,4 @@ dependencies:
       - mujoco<3
       - numpy==1.26.4
       - minigrid
+      - rl_zoo3
