@@ -15,7 +15,7 @@ dependencies:
       # - torch==2.2.0+cu121
       - minari[hf,hdf5,create]
       - pyrallis
-      - gymnasium
+      - gymnasium[other]
       - gymnasium-robotics>=1.2.4
       - mujoco<3
       - numpy==1.26.4
