@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../d3rlpy"
+		},
+		{
+			"path": "../sasrec_sqn"
+		},
+		{
+			"path": "../bert4recv1"
+		}
+	],
+	"settings": {}
+}
